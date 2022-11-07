@@ -2,6 +2,7 @@
     package="com.tow.towchat">
    <application
         android:label="towchat"
+        android:usesCleartextTraffic="true"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
