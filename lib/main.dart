@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:towchat/moduls/chat.dart';
+import 'package:towchat/moduls/home.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -9,6 +9,7 @@ void main() {
     theme: ThemeData(
       primarySwatch: Colors.blue,
     ),
-    home: Chat(),
+    debugShowCheckedModeBanner: false,
+    home: const HomePage(),
   ));
 }
