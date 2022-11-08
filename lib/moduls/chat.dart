@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_bubble/bubble_type.dart';
 import 'package:flutter_chat_bubble/chat_bubble.dart';
@@ -19,8 +21,10 @@ class ChatState extends State<Chat> {
 
   late IO.Socket socket;
 
+  final List<MessagesModel> _messages = [];
+
   void _sendMessage() {
-    String messageText = _messageController.text.trim();
+    String messageText = _messageController.text;
     _messageController.text = '';
     print(messageText);
     if (messageText != '') {
@@ -30,7 +34,7 @@ class ChatState extends State<Chat> {
         "content": "$messageText ",
         "contentType": "TEXT"
       };
-      socket.emit("send", messagePost);
+      socket.emit("send", jsonEncode(messagePost));
     }
   }
 
@@ -49,22 +53,30 @@ class ChatState extends State<Chat> {
     });
     socket.connect();
     socket.emit("join", '634aa1a081e27050142653d5');
+    socket.on('send', (data) {
+      print("Received message : ${data.runtimeType}");
+      print("Received message : ${data['content']}");
+      final MessagesModel _data = MessagesModel.fromJson(data);
+      setState(() {
+        _messages.add(_data);
+      });
+    });
     socket.onConnect((_) {
       print('connected to websocket');
     });
     // socket.emit("join", {"634aa1a081e27050142653d5"});
-    socket.on('newChat', (message) {
-      print(message);
-      setState(() {
-        MessagesModel.messages.add(message);
-      });
-    });
-    socket.on('allChats', (messages) {
-      print(messages);
-      setState(() {
-        MessagesModel.messages.addAll(messages);
-      });
-    });
+    // socket.on('newChat', (message) {
+    //   print(message);
+    //   setState(() {
+    //     MessagesModel.messages.add(message);
+    //   });
+    // });
+    // socket.on('allChats', (messages) {
+    //   print(messages);
+    //   setState(() {
+    //     MessagesModel.messages.addAll(messages);
+    //   });
+    // });
   }
 
   @override
@@ -107,10 +119,9 @@ class ChatState extends State<Chat> {
               shrinkWrap: true,
               reverse: true,
               cacheExtent: 1000,
-              itemCount: MessagesModel.messages.length,
+              itemCount: _messages.length,
               itemBuilder: (BuildContext context, int index) {
-                var message = MessagesModel
-                    .messages[MessagesModel.messages.length - index - 1];
+                var message = _messages[_messages.length - index - 1];
                 return ChatBubble(
                   clipper: ChatBubbleClipper1(type: BubbleType.sendBubble),
                   alignment: Alignment.topRight,
@@ -121,10 +132,10 @@ class ChatState extends State<Chat> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('@${message['content']}',
+                        Text('@${message.userId}',
                             style: const TextStyle(
                                 color: Colors.grey, fontSize: 10)),
-                        Text('${message['message']}',
+                        Text('${message.content}',
                             style: const TextStyle(
                                 color: Colors.black, fontSize: 16))
                       ],
