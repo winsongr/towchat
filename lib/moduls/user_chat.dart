@@ -3,9 +3,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:towchat/moduls/messages_model.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
@@ -18,22 +16,27 @@ class UserChat extends StatefulWidget {
 
 class _UserChatState extends State<UserChat> {
   late IO.Socket socket;
+  late TextEditingController _messageController;
 
-  final List<types.Message> _messages = [];
-  final _user = const types.User(id: '634a9be1bf4bee51d435b6a8');
+  List<MessagesModel> _messages = [];
 
   @override
   void initState() {
     super.initState();
     _loadMessages();
+    _messageController = TextEditingController();
+
     initSocket();
   }
 
   @override
   void dispose() {
     socket.disconnect();
+    _messageController.dispose();
+
     super.dispose();
   }
+
   Future<void> initSocket() async {
     debugPrint('Connecting to chat service');
     socket = IO.io('http://43.204.209.21', <String, dynamic>{
@@ -50,142 +53,165 @@ class _UserChatState extends State<UserChat> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("User 1"),
-      ),
-      body: Chat(
-        theme: const DefaultChatTheme(
-          inputBackgroundColor: Colors.red,
-        ),
-        messages: _messages,
-        onAttachmentPressed: _handleAttachmentPressed,
-        onMessageTap: _handleMessageTap,
-        onPreviewDataFetched: _handlePreviewDataFetched,
-        onSendPressed: _handleSendPressed,
-        showUserAvatars: true,
-        showUserNames: true,
-        user: _user,
+  _buildMessageComposer() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      height: 70.0,
+      color: Colors.white,
+      child: Row(
+        children: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.attach_file),
+            iconSize: 25.0,
+            color: Theme.of(context).primaryColor,
+            onPressed: () {},
+          ),
+          Expanded(
+            child: TextField(
+              controller: _messageController,
+              textCapitalization: TextCapitalization.sentences,
+              onChanged: (value) {},
+              decoration: const InputDecoration.collapsed(
+                hintText: 'Send a message...',
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.send),
+            iconSize: 25.0,
+            color: Theme.of(context).primaryColor,
+            onPressed: () {
+              _sendMessage();
+            },
+          ),
+        ],
       ),
     );
   }
 
-  // void _addMessage(types.Message message) {
-  //   setState(() {
-  //     _messages.insert(0, message);
-  //   });
-  // }
+  _buildMessage(MessagesModel message, bool isMe) {
+    final container = Container(
+      margin: isMe
+          ? const EdgeInsets.only(
+              top: 8.0,
+              bottom: 8.0,
+              left: 80.0,
+            )
+          : const EdgeInsets.only(
+              top: 8.0,
+              bottom: 8.0,
+            ),
+      padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 15.0),
+      width: MediaQuery.of(context).size.width * 0.5,
+      decoration: BoxDecoration(
+        color: isMe ? Colors.grey.shade200 : const Color(0xFFFFEFEE),
+        borderRadius: isMe
+            ? const BorderRadius.only(
+                topLeft: Radius.circular(15.0),
+                bottomLeft: Radius.circular(15.0),
+              )
+            : const BorderRadius.only(
+                topRight: Radius.circular(15.0),
+                bottomRight: Radius.circular(15.0),
+              ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          // Text(
+          //   message.,
+          //   style: TextStyle(
+          //     color: Colors.grey,
+          //     fontSize: 16.0,
+          //     fontWeight: FontWeight.w600,
+          //   ),
+          // ),
+          // SizedBox(height: 8.0),
+          Text(
+            message.content.toString(),
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 16.0,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
 
-  void _handleAttachmentPressed() {
-    // showModalBottomSheet<void>(
-    //   context: context,
-    //   builder: (BuildContext context) => SafeArea(
-    //     child: SizedBox(
-    //       height: 144,
-    //       child: Column(
-    //         crossAxisAlignment: CrossAxisAlignment.stretch,
-    //         children: <Widget>[
-    //           TextButton(
-    //             onPressed: () {
-    //               Navigator.pop(context);
-    //               _handleImageSelection();
-    //             },
-    //             child: const Align(
-    //               alignment: AlignmentDirectional.centerStart,
-    //               child: Text('Photo'),
-    //             ),
-    //           ),
-    //           TextButton(
-    //             onPressed: () {
-    //               Navigator.pop(context);
-    //               _handleFileSelection();
-    //             },
-    //             child: const Align(
-    //               alignment: AlignmentDirectional.centerStart,
-    //               child: Text('File'),
-    //             ),
-    //           ),
-    //           TextButton(
-    //             onPressed: () => Navigator.pop(context),
-    //             child: const Align(
-    //               alignment: AlignmentDirectional.centerStart,
-    //               child: Text('Cancel'),
-    //             ),
-    //           ),
-    //         ],
-    //       ),
-    //     ),
-    //   ),
-    // );
+    if (isMe) {
+      return container;
+    }
   }
 
-  void _handleMessageTap(BuildContext _, types.Message message) async {
-    //   if (message is types.FileMessage) {
-    //     var localPath = message.uri;
-
-    //     if (message.uri.startsWith('http')) {
-    //       try {
-    //         final index =
-    //             _messages.indexWhere((element) => element.id == message.id);
-    //         final updatedMessage =
-    //             (_messages[index] as types.FileMessage).copyWith(
-    //           isLoading: true,
-    //         );
-
-    //         setState(() {
-    //           _messages[index] = updatedMessage;
-    //         });
-
-    //         final client = http.Client();
-    //         final request = await client.get(Uri.parse(message.uri));
-    //         final bytes = request.bodyBytes;
-    //         final documentsDir = (await getApplicationDocumentsDirectory()).path;
-    //         localPath = '$documentsDir/${message.name}';
-
-    //         if (!File(localPath).existsSync()) {
-    //           final file = File(localPath);
-    //           await file.writeAsBytes(bytes);
-    //         }
-    //       } finally {
-    //         final index =
-    //             _messages.indexWhere((element) => element.id == message.id);
-    //         final updatedMessage =
-    //             (_messages[index] as types.FileMessage).copyWith(
-    //           isLoading: null,
-    //         );
-
-    //         setState(() {
-    //           _messages[index] = updatedMessage;
-    //         });
-    //       }
-    //     }
-
-    //     await OpenFilex.open(localPath);
-    //   }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).primaryColor,
+      appBar: AppBar(
+        title: const Text(
+          "user 1",
+          style: TextStyle(
+            fontSize: 24.0,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        elevation: 0.0,
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.more_horiz),
+            iconSize: 30.0,
+            color: Colors.white,
+            onPressed: () {},
+          ),
+        ],
+      ),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Column(
+          children: <Widget>[
+            Expanded(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(30.0),
+                    topRight: Radius.circular(30.0),
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(30.0),
+                    topRight: Radius.circular(30.0),
+                  ),
+                  child: ListView.builder(
+                    // reverse: true,
+                    padding: const EdgeInsets.only(top: 15.0),
+                    itemCount: _messages.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final MessagesModel message = _messages[index];
+                      return _buildMessage(message, true);
+                    },
+                  ),
+                ),
+              ),
+            ),
+            _buildMessageComposer(),
+          ],
+        ),
+      ),
+    );
   }
 
-  void _handlePreviewDataFetched(
-    types.TextMessage message,
-    types.PreviewData previewData,
-  ) {
-    //   final index = _messages.indexWhere((element) => element.id == message.id);
-    //   final updatedMessage = (_messages[index] as types.TextMessage).copyWith(
-    //     previewData: previewData,
-    //   );
-
-    //   setState(() {
-    //     _messages[index] = updatedMessage;
-    //   });
-  }
-
-  void _handleSendPressed(types.PartialText message) {
-    if (message.text != '') {
+  void _sendMessage() {
+    String messageText = _messageController.text;
+    _messageController.text = '';
+    print(messageText);
+    if (messageText != '') {
       var messagePost = {
         "roomId": "634aa1a081e27050142653d5",
         "userId": "634a9be1bf4bee51d435b6a8",
-        "content": "${message.text} ",
+        "content": "$messageText ",
         "contentType": "TEXT"
       };
       socket.emit("send", jsonEncode(messagePost));
@@ -193,6 +219,7 @@ class _UserChatState extends State<UserChat> {
   }
 
   _loadMessages() async {
+    _messages = [];
     var url = Uri.parse(
         'http://13.235.33.199/get_all_messages/634aa1a081e27050142653d5');
 
@@ -202,14 +229,9 @@ class _UserChatState extends State<UserChat> {
     if (response.statusCode == 200) {
       var data = json.decode(response.body);
       for (var msg in data['data']['data']) {
-        final MessagesModel messagesModel = MessagesModel.fromJson(msg);
-        final textMessage = types.TextMessage(
-          author: _user,
-          createdAt: DateTime.now().millisecondsSinceEpoch,
-          id: "${messagesModel.userId}",
-          text: "${messagesModel.content}",
-        );
-        _messages.add(textMessage);
+        final messagesModel = MessagesModel.fromJson(msg);
+        // _messages.add(messagesModel);
+        _messages.add(messagesModel);
         setState(() {});
       }
 
