@@ -1,11 +1,6 @@
-// ignore_for_file: depend_on_referenced_packages, library_prefixes
-
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:towchat/moduls/messages_model.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class UserChat extends StatefulWidget {
   const UserChat({super.key});
@@ -15,7 +10,6 @@ class UserChat extends StatefulWidget {
 }
 
 class _UserChatState extends State<UserChat> {
-  late IO.Socket socket;
   late TextEditingController _messageController;
 
   List<MessagesModel> _messages = [];
@@ -23,34 +17,18 @@ class _UserChatState extends State<UserChat> {
   @override
   void initState() {
     super.initState();
-    _loadMessages();
     _messageController = TextEditingController();
-
     initSocket();
   }
 
   @override
   void dispose() {
-    socket.disconnect();
     _messageController.dispose();
-
     super.dispose();
   }
 
   Future<void> initSocket() async {
     debugPrint('Connecting to chat service');
-    socket = IO.io('http://43.204.209.21', <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': false,
-    });
-    socket.connect();
-    socket.emit("join", '634aa1a081e27050142653d5');
-    socket.on('send', (data) {
-      _loadMessages();
-    });
-    socket.onConnect((_) {
-      debugPrint('connected to websocket');
-    });
   }
 
   _buildMessageComposer() {
@@ -207,37 +185,5 @@ class _UserChatState extends State<UserChat> {
     String messageText = _messageController.text;
     _messageController.text = '';
     print(messageText);
-    if (messageText != '') {
-      var messagePost = {
-        "roomId": "634aa1a081e27050142653d5",
-        "userId": "634a9be1bf4bee51d435b6a8",
-        "content": "$messageText ",
-        "contentType": "TEXT"
-      };
-      socket.emit("send", jsonEncode(messagePost));
-    }
-  }
-
-  _loadMessages() async {
-    _messages = [];
-    var url = Uri.parse(
-        'http://13.235.33.199/get_all_messages/634aa1a081e27050142653d5');
-
-    http.Response response = await http.get(url);
-
-    List<MessagesModel> allMsg = [];
-    if (response.statusCode == 200) {
-      var data = json.decode(response.body);
-      for (var msg in data['data']['data']) {
-        final messagesModel = MessagesModel.fromJson(msg);
-        // _messages.add(messagesModel);
-        _messages.add(messagesModel);
-        setState(() {});
-      }
-
-      return allMsg;
-    } else {
-      debugPrint('Error retrieving');
-    }
   }
 }

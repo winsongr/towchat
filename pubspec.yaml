@@ -2,23 +2,23 @@ name: towchat
 version: 1.0.0+1
 publish_to: none
 description: A new Flutter project.
-environment: 
-  sdk: '>=2.18.2 <3.0.0'
+environment:
+  sdk: ">=2.18.2 <3.0.0"
 
-dependencies: 
+dependencies:
   cupertino_icons: ^1.0.2
   get: 4.6.5
-  flutter: 
+  flutter:
     sdk: flutter
-  socket_io_client: ^1.0.2
+  phoenix_socket: ^0.6.2
+  flutter_chat_bubble: ^2.0.0
   intl: ^0.17.0
   http: ^0.13.5
 
-dev_dependencies: 
+dev_dependencies:
   flutter_lints: 2.0.1
-  flutter_test: 
+  flutter_test:
     sdk: flutter
 
-flutter: 
+flutter:
   uses-material-design: true
-
